@@ -14,7 +14,245 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_recommendations: {
+        Row: {
+          customer_id: string
+          generated_at: string
+          opportunities: Json
+        }
+        Insert: {
+          customer_id: string
+          generated_at?: string
+          opportunities?: Json
+        }
+        Update: {
+          customer_id?: string
+          generated_at?: string
+          opportunities?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_recommendations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string
+        }
+        Relationships: []
+      }
+      customer_features: {
+        Row: {
+          customer_id: string
+          feature_id: string
+        }
+        Insert: {
+          customer_id: string
+          feature_id: string
+        }
+        Update: {
+          customer_id?: string
+          feature_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_features_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_login_stats: {
+        Row: {
+          customer_id: string
+          login_days_current: number
+          login_days_prev: number
+        }
+        Insert: {
+          customer_id: string
+          login_days_current?: number
+          login_days_prev?: number
+        }
+        Update: {
+          customer_id?: string
+          login_days_current?: number
+          login_days_prev?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_login_stats_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          business_objectives: string
+          company_id: string
+          created_at: string
+          customer_type: string
+          id: string
+          industry: string
+          name: string
+          pain_points: string
+          plan: string
+          renewal_date: string | null
+          size: string
+          use_cases: string
+        }
+        Insert: {
+          business_objectives?: string
+          company_id: string
+          created_at?: string
+          customer_type?: string
+          id?: string
+          industry?: string
+          name: string
+          pain_points?: string
+          plan?: string
+          renewal_date?: string | null
+          size?: string
+          use_cases?: string
+        }
+        Update: {
+          business_objectives?: string
+          company_id?: string
+          created_at?: string
+          customer_type?: string
+          id?: string
+          industry?: string
+          name?: string
+          pain_points?: string
+          plan?: string
+          renewal_date?: string | null
+          size?: string
+          use_cases?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      features: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          expected_monthly_usage: number
+          id: string
+          is_core: boolean
+          module: string
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string
+          expected_monthly_usage?: number
+          id?: string
+          is_core?: boolean
+          module?: string
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          expected_monthly_usage?: number
+          id?: string
+          is_core?: boolean
+          module?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "features_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage: {
+        Row: {
+          current_month: number
+          customer_id: string
+          feature_id: string
+          prev_month: number
+          six_month: number
+          three_month: number
+        }
+        Insert: {
+          current_month?: number
+          customer_id: string
+          feature_id: string
+          prev_month?: number
+          six_month?: number
+          three_month?: number
+        }
+        Update: {
+          current_month?: number
+          customer_id?: string
+          feature_id?: string
+          prev_month?: number
+          six_month?: number
+          three_month?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
