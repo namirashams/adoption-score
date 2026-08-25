@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/lib/company-context";
 import { featuresQuery } from "@/lib/queries";
+import type { Feature } from "@/lib/scoring";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,6 +130,8 @@ function SetupPage() {
   );
 }
 
+const EMPTY_FEATURES: Feature[] = [];
+
 type Draft = {
   id: string;
   name: string;
@@ -140,7 +143,8 @@ type Draft = {
 
 function FeatureTable({ companyId }: { companyId: string }) {
   const qc = useQueryClient();
-  const { data: features = [] } = useQuery(featuresQuery(companyId));
+  const { data } = useQuery(featuresQuery(companyId));
+  const features = data ?? EMPTY_FEATURES;
   const [drafts, setDrafts] = useState<Draft[]>([]);
 
   useEffect(() => {
