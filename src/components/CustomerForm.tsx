@@ -445,9 +445,11 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
+    <label className="block space-y-2">
+      <Label asChild>
+        <span className="block">{label}</span>
+      </Label>
       {children}
-    </div>
+    </label>
   );
 }

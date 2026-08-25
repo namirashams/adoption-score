@@ -1,8 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const schema = z.object({ customerId: z.string().uuid() });
-
 type Opportunity = {
   type: string;
   feature: string;
@@ -12,7 +10,7 @@ type Opportunity = {
 };
 
 export const generateOpportunities = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .inputValidator((data: unknown) => z.object({ customerId: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
     const { createClient } = await import("@supabase/supabase-js");
     const url = process.env["SUPABASE_URL"]!;
