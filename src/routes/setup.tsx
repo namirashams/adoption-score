@@ -37,10 +37,12 @@ function SetupPage() {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
+  const [syncedId, setSyncedId] = useState<string | null>(null);
+  if (syncedId !== (activeCompany?.id ?? null)) {
+    setSyncedId(activeCompany?.id ?? null);
     setName(activeCompany?.name ?? "");
     setNotes(activeCompany?.notes ?? "");
-  }, [activeCompany?.id, activeCompany?.name, activeCompany?.notes]);
+  }
 
   const saveCompany = useMutation({
     mutationFn: async () => {
