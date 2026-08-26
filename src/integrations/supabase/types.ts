@@ -65,14 +65,17 @@ export type Database = {
         Row: {
           customer_id: string
           feature_id: string
+          is_core_for_customer: boolean
         }
         Insert: {
           customer_id: string
           feature_id: string
+          is_core_for_customer?: boolean
         }
         Update: {
           customer_id?: string
           feature_id?: string
+          is_core_for_customer?: boolean
         }
         Relationships: [
           {
