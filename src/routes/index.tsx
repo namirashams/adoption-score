@@ -71,6 +71,13 @@ function Dashboard() {
       arr.push(f);
       purchasedByCustomer.set(l.customer_id, arr);
     }
+    const coreByCustomer = new Map<string, Set<string>>();
+    for (const l of links) {
+      if (!l.is_core_for_customer) continue;
+      const set = coreByCustomer.get(l.customer_id) ?? new Set<string>();
+      set.add(l.feature_id);
+      coreByCustomer.set(l.customer_id, set);
+    }
     const usageByCustomer = new Map<string, Record<string, UsageRow>>();
     for (const u of usage) {
       const map = usageByCustomer.get(u.customer_id) ?? {};
@@ -82,6 +89,7 @@ function Dashboard() {
       const score = computeScore({
         customer,
         purchased: purchasedByCustomer.get(customer.id) ?? [],
+        coreFeatureIds: coreByCustomer.get(customer.id) ?? new Set<string>(),
         usageByFeature: usageByCustomer.get(customer.id) ?? {},
         loginDaysCurrent: Number(
           logins.find((l) => l.customer_id === customer.id)?.login_days_current ?? 0,
