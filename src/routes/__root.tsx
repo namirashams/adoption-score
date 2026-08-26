@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { CompanyProvider } from "../lib/company-context";
+import { CompanyProvider } from "@/lib/company-context";
 import { Shell } from "../components/Shell";
 import { Toaster } from "../components/ui/sonner";
 
