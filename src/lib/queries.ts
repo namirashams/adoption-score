@@ -71,7 +71,7 @@ export const allCustomerFeaturesQuery = () =>
   queryOptions({
     queryKey: ["customer_features"],
     queryFn: async () =>
-      unwrap<{ customer_id: string; feature_id: string }[]>(
+      unwrap<{ customer_id: string; feature_id: string; is_core_for_customer: boolean }[]>(
         await supabase.from("customer_features").select("*"),
       ),
   });

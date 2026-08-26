@@ -35,6 +35,7 @@ export type TrendLabel = "Improving" | "Declining" | "Stable" | "New usage" | "N
 export type Priority = "High" | "Medium" | "Low";
 
 export type Score = {
+  coreFeatureIds: Set<string>;
   productUsage: number;
   coreUsage: number | null;
   breadth: number;
@@ -57,12 +58,14 @@ export function computeScore(input: {
   purchased: Feature[];
   usageByFeature: Record<string, UsageRow | undefined>;
   loginDaysCurrent: number;
+  /** Feature ids that are core for THIS customer (customer_features.is_core_for_customer). */
+  coreFeatureIds?: Set<string>;
 }): Score {
-  const { customer, purchased, usageByFeature, loginDaysCurrent } = input;
+  const { customer, purchased, usageByFeature, loginDaysCurrent, coreFeatureIds } = input;
   const current = (f: Feature) => Number(usageByFeature[f.id]?.current_month ?? 0);
   const prev = (f: Feature) => Number(usageByFeature[f.id]?.prev_month ?? 0);
 
-  const core = purchased.filter((f) => f.is_core);
+  const core = purchased.filter((f) => (coreFeatureIds ? coreFeatureIds.has(f.id) : f.is_core));
   const used = purchased.filter((f) => current(f) > 0);
   const usedCore = core.filter((f) => current(f) > 0);
 
@@ -125,6 +128,7 @@ export function computeScore(input: {
   });
 
   return {
+    coreFeatureIds: new Set(core.map((f) => f.id)),
     productUsage,
     coreUsage,
     breadth,
