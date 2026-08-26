@@ -54,6 +54,7 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
     renewal_date: "",
   });
   const [purchased, setPurchased] = useState<Set<string>>(new Set());
+  const [coreFor, setCoreFor] = useState<Record<string, boolean>>({});
   const [usage, setUsage] = useState<Record<string, UsageDraft>>({});
   const [loginCurrent, setLoginCurrent] = useState(0);
   const [loginPrev, setLoginPrev] = useState(0);
@@ -75,7 +76,10 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
     });
     (async () => {
       const [links, usageRows, stats] = await Promise.all([
-        supabase.from("customer_features").select("feature_id").eq("customer_id", customerId),
+        supabase
+          .from("customer_features")
+          .select("feature_id, is_core_for_customer")
+          .eq("customer_id", customerId),
         supabase.from("usage").select("*").eq("customer_id", customerId),
         supabase
           .from("customer_login_stats")
@@ -84,6 +88,11 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
           .maybeSingle(),
       ]);
       setPurchased(new Set((links.data ?? []).map((l) => l.feature_id)));
+      setCoreFor(
+        Object.fromEntries(
+          (links.data ?? []).map((l) => [l.feature_id, !!l.is_core_for_customer]),
+        ),
+      );
       const map: Record<string, UsageDraft> = {};
       for (const u of usageRows.data ?? []) {
         map[u.feature_id] = {
@@ -104,13 +113,18 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
   const setUsageField = (featureId: string, key: keyof UsageDraft, value: number) =>
     setUsage((u) => ({ ...u, [featureId]: { ...(u[featureId] ?? emptyUsage()), [key]: value } }));
 
-  const togglePurchased = (id: string, on: boolean) =>
+  const togglePurchased = (id: string, on: boolean) => {
     setPurchased((p) => {
       const next = new Set(p);
       if (on) next.add(id);
       else next.delete(id);
       return next;
     });
+    if (on)
+      setCoreFor((c) =>
+        id in c ? c : { ...c, [id]: !!features.find((f) => f.id === id)?.is_core },
+      );
+  };
 
   const handleCsv = async (file: File) => {
     const text = await file.text();
@@ -122,6 +136,7 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
     const missed: string[] = [];
     const nextUsage = { ...usage };
     const nextPurchased = new Set(purchased);
+    const nextCore: Record<string, boolean> = { ...coreFor };
     let lc: number | null = null;
     let lp: number | null = null;
 
@@ -146,9 +161,11 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
         six_month: num("six_month"),
       };
       nextPurchased.add(feature.id);
+      nextCore[feature.id] = nextCore[feature.id] ?? feature.is_core;
     }
     setUsage(nextUsage);
     setPurchased(nextPurchased);
+    setCoreFor(nextCore);
     if (lc != null) setLoginCurrent(lc);
     if (lp != null) setLoginPrev(lp);
     setUnmatched(missed);
@@ -186,7 +203,14 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
       if (ids.length) {
         const { error } = await supabase
           .from("customer_features")
-          .insert(ids.map((feature_id) => ({ customer_id: id!, feature_id })));
+          .insert(
+            ids.map((feature_id) => ({
+              customer_id: id!,
+              feature_id,
+              is_core_for_customer:
+                coreFor[feature_id] ?? !!features.find((f) => f.id === feature_id)?.is_core,
+            })),
+          );
         if (error) throw new Error(error.message);
       }
 
@@ -287,26 +311,37 @@ export function CustomerForm({ customerId }: { customerId?: string }) {
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
-            <label
+            <div
               key={f.id}
-              className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 hover:bg-secondary/60"
+              className="rounded-md border border-border p-3 hover:bg-secondary/60"
             >
-              <Checkbox
-                checked={purchased.has(f.id)}
-                onCheckedChange={(c) => togglePurchased(f.id, c === true)}
-              />
-              <span>
-                <span className="block text-sm font-medium">
-                  {f.name}
-                  {f.is_core && (
-                    <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                      Core
-                    </span>
-                  )}
+              <label className="flex cursor-pointer items-start gap-3">
+                <Checkbox
+                  checked={purchased.has(f.id)}
+                  onCheckedChange={(c) => togglePurchased(f.id, c === true)}
+                />
+                <span>
+                  <span className="block text-sm font-medium">
+                    {f.name}
+                    {f.is_core && (
+                      <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                        Core by default
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">{f.module}</span>
                 </span>
-                <span className="block text-xs text-muted-foreground">{f.module}</span>
-              </span>
-            </label>
+              </label>
+              {purchased.has(f.id) && (
+                <label className="mt-3 flex cursor-pointer items-center gap-2 border-t border-border pt-3 text-xs font-medium">
+                  <Checkbox
+                    checked={coreFor[f.id] ?? f.is_core}
+                    onCheckedChange={(c) => setCoreFor((s) => ({ ...s, [f.id]: c === true }))}
+                  />
+                  Core for this customer
+                </label>
+              )}
+            </div>
           ))}
           {features.length === 0 && (
             <p className="text-sm text-muted-foreground">

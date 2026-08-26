@@ -42,7 +42,7 @@ function CustomerDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customer_features")
-        .select("feature_id")
+        .select("feature_id, is_core_for_customer")
         .eq("customer_id", customerId);
       if (error) throw new Error(error.message);
       return data;
@@ -79,6 +79,9 @@ function CustomerDetail() {
     return computeScore({
       customer,
       purchased: features.filter((f) => purchasedIds.has(f.id)),
+      coreFeatureIds: new Set(
+        links.filter((l) => l.is_core_for_customer).map((l) => l.feature_id),
+      ),
       usageByFeature,
       loginDaysCurrent: Number(stats?.login_days_current ?? 0),
     });
@@ -150,7 +153,7 @@ function CustomerDetail() {
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             {score.used.length} of {score.purchased.length} purchased features used this month ·{" "}
-            {score.core.length} core feature{score.core.length === 1 ? "" : "s"} purchased ·{" "}
+            {score.core.length} core feature{score.core.length === 1 ? "" : "s"} for this customer ·{" "}
             {Number(stats?.login_days_current ?? 0)} login days (target 20)
           </p>
         </section>
@@ -168,9 +171,9 @@ function CustomerDetail() {
               className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-4 py-3"
             >
               <div className="flex items-center gap-2">
-                {f.is_core && <AlertTriangle className="size-4 text-danger" />}
+                {score.coreFeatureIds.has(f.id) && <AlertTriangle className="size-4 text-danger" />}
                 <span className="text-sm font-medium">{f.name}</span>
-                {f.is_core && (
+                {score.coreFeatureIds.has(f.id) && (
                   <span className="rounded bg-danger/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-danger">
                     Core
                   </span>

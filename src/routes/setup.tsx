@@ -12,6 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({
@@ -211,14 +219,82 @@ function FeatureTable({ companyId }: { companyId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+
+  const bulkImport = useMutation({
+    mutationFn: async () => {
+      const rows = bulkText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0)
+        .map((line) => {
+          const cells = line.split(line.includes("\t") ? "\t" : ",").map((c) => c.trim());
+          const core = (cells[3] ?? "").toLowerCase();
+          return {
+            company_id: companyId,
+            name: cells[0] ?? "",
+            description: cells[1] ?? "",
+            module: cells[2] || "General",
+            is_core: ["yes", "y", "true", "1", "core"].includes(core),
+            expected_monthly_usage: Number(cells[4]) || 4,
+          };
+        })
+        .filter((r) => r.name.length > 0);
+      if (!rows.length) throw new Error("Nothing to import — paste at least one row");
+      const { error } = await supabase.from("features").insert(rows);
+      if (error) throw new Error(error.message);
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["features"] });
+      setBulkText("");
+      setBulkOpen(false);
+      toast.success(`${count} feature${count === 1 ? "" : "s"} added`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <section className="rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <h2 className="text-base font-semibold">Feature catalog</h2>
-        <Button variant="outline" size="sm" onClick={() => addFeature.mutate()}>
-          <Plus className="size-4" /> Add feature
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => addFeature.mutate()}>
+            <Plus className="size-4" /> Add feature
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)}>
+            <Plus className="size-4" /> Bulk import features
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bulk import features</DialogTitle>
+            <DialogDescription>
+              Paste one feature per line, comma or tab separated:{" "}
+              <code>name, description, module, core (yes/no), expected_monthly_usage</code>. Empty
+              lines are skipped.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            rows={10}
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={"Dashboards, Visual reporting, Analytics, yes, 12\nAlerts\tEmail alerts\tAutomation\tno\t4"}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => bulkImport.mutate()} disabled={bulkImport.isPending}>
+              Import features
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -226,7 +302,12 @@ function FeatureTable({ companyId }: { companyId: string }) {
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Description</th>
               <th className="px-4 py-3 font-medium">Module</th>
-              <th className="px-4 py-3 font-medium">Core</th>
+              <th className="px-4 py-3 font-medium">
+                Core by default
+                <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                  Starting point when added to a customer; can be overridden per customer.
+                </span>
+              </th>
               <th className="px-4 py-3 font-medium">Expected / mo</th>
               <th className="px-4 py-3" />
             </tr>

@@ -40,18 +40,24 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       await Promise.all([
         db.from("companies").select("*").eq("id", customer.company_id).maybeSingle(),
         db.from("features").select("*").eq("company_id", customer.company_id),
-        db.from("customer_features").select("feature_id").eq("customer_id", data.customerId),
+        db
+          .from("customer_features")
+          .select("feature_id, is_core_for_customer")
+          .eq("customer_id", data.customerId),
         db.from("usage").select("*").eq("customer_id", data.customerId),
       ]);
 
     const allFeatures = features ?? [];
     const purchasedIds = new Set((purchasedRows ?? []).map((r) => r.feature_id));
+    const coreIds = new Set(
+      (purchasedRows ?? []).filter((r) => r.is_core_for_customer).map((r) => r.feature_id),
+    );
     const usageMap = new Map((usageRows ?? []).map((u) => [u.feature_id, u]));
 
     const catalog = allFeatures.map((f) => ({
       name: f.name,
       description: f.description,
-      core: f.is_core,
+      core: purchasedIds.has(f.id) ? coreIds.has(f.id) : f.is_core,
       module: f.module,
       purchased: purchasedIds.has(f.id),
       currentMonthUsage: purchasedIds.has(f.id)
