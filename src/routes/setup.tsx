@@ -260,10 +260,20 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <h2 className="text-base font-semibold">Feature catalog</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => addFeature.mutate()}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!companyId}
+            onClick={() => companyId && addFeature.mutate()}
+          >
             <Plus className="size-4" /> Add feature
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!companyId}
+            onClick={() => companyId && setBulkOpen(true)}
+          >
             <Plus className="size-4" /> Bulk import features
           </Button>
         </div>
@@ -296,79 +306,85 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
         </DialogContent>
       </Dialog>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Module</th>
-              <th className="px-4 py-3 font-medium">
-                Core by default
-                <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
-                  Starting point when added to a customer; can be overridden per customer.
-                </span>
-              </th>
-              <th className="px-4 py-3 font-medium">Expected / mo</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {drafts.map((f) => (
-              <tr key={f.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-2">
-                  <Input value={f.name} onChange={(e) => update(f.id, { name: e.target.value })} />
-                </td>
-                <td className="px-4 py-2">
-                  <Input
-                    value={f.description}
-                    onChange={(e) => update(f.id, { description: e.target.value })}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <Input
-                    className="w-36"
-                    value={f.module}
-                    onChange={(e) => update(f.id, { module: e.target.value })}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <Checkbox
-                    checked={f.is_core}
-                    onCheckedChange={(c) => update(f.id, { is_core: c === true })}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    className="w-24"
-                    value={f.expected_monthly_usage}
-                    onChange={(e) =>
-                      update(f.id, { expected_monthly_usage: Number(e.target.value) })
-                    }
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => saveRow.mutate(f)}>
-                      Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteRow.mutate(f.id)}>
-                      <Trash2 className="size-4 text-danger" />
-                    </Button>
-                  </div>
-                </td>
+        {companyId ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Description</th>
+                <th className="px-4 py-3 font-medium">Module</th>
+                <th className="px-4 py-3 font-medium">
+                  Core by default
+                  <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                    Starting point when added to a customer; can be overridden per customer.
+                  </span>
+                </th>
+                <th className="px-4 py-3 font-medium">Expected / mo</th>
+                <th className="px-4 py-3" />
               </tr>
-            ))}
-            {drafts.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  No features yet. Add the first one.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {drafts.map((f) => (
+                <tr key={f.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-2">
+                    <Input value={f.name} onChange={(e) => update(f.id, { name: e.target.value })} />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Input
+                      value={f.description}
+                      onChange={(e) => update(f.id, { description: e.target.value })}
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Input
+                      className="w-36"
+                      value={f.module}
+                      onChange={(e) => update(f.id, { module: e.target.value })}
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Checkbox
+                      checked={f.is_core}
+                      onCheckedChange={(c) => update(f.id, { is_core: c === true })}
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-24"
+                      value={f.expected_monthly_usage}
+                      onChange={(e) =>
+                        update(f.id, { expected_monthly_usage: Number(e.target.value) })
+                      }
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => saveRow.mutate(f)}>
+                        Save
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteRow.mutate(f.id)}>
+                        <Trash2 className="size-4 text-danger" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {drafts.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    No features yet. Add the first one.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+            Create or select a company above to manage its feature catalog.
+          </div>
+        )}
       </div>
     </section>
   );
