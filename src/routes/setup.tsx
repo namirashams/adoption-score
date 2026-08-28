@@ -173,6 +173,7 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
 
   const addFeature = useMutation({
     mutationFn: async () => {
+      if (!companyId) throw new Error("No company selected");
       const { error } = await supabase.from("features").insert({
         company_id: companyId,
         name: "New feature",
