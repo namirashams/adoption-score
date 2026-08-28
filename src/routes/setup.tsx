@@ -225,6 +225,7 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
 
   const bulkImport = useMutation({
     mutationFn: async () => {
+      if (!companyId) throw new Error("No company selected");
       const rows = bulkText
         .split(/\r?\n/)
         .map((l) => l.trim())
