@@ -133,7 +133,7 @@ function SetupPage() {
         </Button>
       </section>
 
-      {activeCompanyId && <FeatureTable companyId={activeCompanyId} />}
+      <FeatureTable companyId={activeCompanyId} />
     </div>
   );
 }
