@@ -149,9 +149,9 @@ type Draft = {
   expected_monthly_usage: number;
 };
 
-function FeatureTable({ companyId }: { companyId: string }) {
+function FeatureTable({ companyId }: { companyId: string | null }) {
   const qc = useQueryClient();
-  const { data } = useQuery(featuresQuery(companyId));
+  const { data } = useQuery({ ...featuresQuery(companyId ?? ""), enabled: !!companyId });
   const features = data ?? EMPTY_FEATURES;
   const [drafts, setDrafts] = useState<Draft[]>([]);
 
