@@ -10,10 +10,51 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      action_items: {
+        Row: {
+          action_text: string
+          created_at: string
+          customer_id: string
+          due_date: string | null
+          id: string
+          owner: string
+          source: string
+          status: string
+        }
+        Insert: {
+          action_text: string
+          created_at?: string
+          customer_id: string
+          due_date?: string | null
+          id?: string
+          owner?: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          action_text?: string
+          created_at?: string
+          customer_id?: string
+          due_date?: string | null
+          id?: string
+          owner?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_items_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_recommendations: {
         Row: {
           customer_id: string
@@ -60,6 +101,47 @@ export type Database = {
           notes?: string
         }
         Relationships: []
+      }
+      contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          designation: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          roles: string[]
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          designation?: string
+          email?: string
+          id?: string
+          name: string
+          phone?: string
+          roles?: string[]
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          designation?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          roles?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_features: {
         Row: {
@@ -122,9 +204,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          account_owner: string
+          account_status: string
           business_objectives: string
           company_id: string
+          contract_status: string
+          contract_value: number | null
           created_at: string
+          customer_since: string | null
           customer_type: string
           id: string
           industry: string
@@ -136,9 +223,14 @@ export type Database = {
           use_cases: string
         }
         Insert: {
+          account_owner?: string
+          account_status?: string
           business_objectives?: string
           company_id: string
+          contract_status?: string
+          contract_value?: number | null
           created_at?: string
+          customer_since?: string | null
           customer_type?: string
           id?: string
           industry?: string
@@ -150,9 +242,14 @@ export type Database = {
           use_cases?: string
         }
         Update: {
+          account_owner?: string
+          account_status?: string
           business_objectives?: string
           company_id?: string
+          contract_status?: string
+          contract_value?: number | null
           created_at?: string
+          customer_since?: string | null
           customer_type?: string
           id?: string
           industry?: string
@@ -210,6 +307,192 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          created_at: string
+          csm_commitments: string
+          customer_commitments: string
+          customer_concerns: string
+          customer_id: string
+          decisions: string
+          discussion_summary: string
+          follow_up_date: string | null
+          id: string
+          meeting_date: string
+          meeting_type: string
+          next_meeting_date: string | null
+          participants: string
+          raw_notes: string
+        }
+        Insert: {
+          created_at?: string
+          csm_commitments?: string
+          customer_commitments?: string
+          customer_concerns?: string
+          customer_id: string
+          decisions?: string
+          discussion_summary?: string
+          follow_up_date?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_type?: string
+          next_meeting_date?: string | null
+          participants?: string
+          raw_notes?: string
+        }
+        Update: {
+          created_at?: string
+          csm_commitments?: string
+          customer_commitments?: string
+          customer_concerns?: string
+          customer_id?: string
+          decisions?: string
+          discussion_summary?: string
+          follow_up_date?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_type?: string
+          next_meeting_date?: string | null
+          participants?: string
+          raw_notes?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          is_primary: boolean
+          objective_text: string
+          success_metric: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_primary?: boolean
+          objective_text: string
+          success_metric?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_primary?: boolean
+          objective_text?: string
+          success_metric?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pain_points: {
+        Row: {
+          category: string
+          created_at: string
+          customer_id: string
+          date_raised: string
+          description: string
+          id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          customer_id: string
+          date_raised?: string
+          description: string
+          id?: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          customer_id?: string
+          date_raised?: string
+          description?: string
+          id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pain_points_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timeline_events: {
+        Row: {
+          created_at: string
+          customer_id: string
+          description: string
+          event_date: string
+          event_type: string
+          id: string
+          related_meeting_id: string | null
+          source: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          description?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          related_meeting_id?: string | null
+          source?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          description?: string
+          event_date?: string
+          event_type?: string
+          id?: string
+          related_meeting_id?: string | null
+          source?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_related_meeting_id_fkey"
+            columns: ["related_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
         ]
@@ -280,12 +563,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -309,11 +592,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -334,11 +617,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -359,11 +642,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -376,11 +659,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
