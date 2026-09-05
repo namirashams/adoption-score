@@ -18,7 +18,13 @@ import { AnalystTab } from "@/components/account/AnalystTab";
 import { PrepareCallDialog } from "@/components/account/PrepareCallDialog";
 import { PhoneCall } from "lucide-react";
 
+type AccountSearch = { tab?: string; prep?: boolean };
+
 export const Route = createFileRoute("/customers/$customerId/")({
+  validateSearch: (search: Record<string, unknown>): AccountSearch => ({
+    tab: typeof search["tab"] === "string" ? search["tab"] : undefined,
+    prep: search["prep"] === true || search["prep"] === "true",
+  }),
   head: () => ({
     meta: [
       { title: "Account 360 — CS Adoption Desk" },
@@ -42,7 +48,8 @@ function Account360() {
   const { data: customer, isLoading } = useQuery(customerQuery(customerId));
   const { data: pains = [] } = useQuery(painPointsQuery(customerId));
   const { data: actions = [] } = useQuery(actionItemsQuery(customerId));
-  const [prepOpen, setPrepOpen] = useState(false);
+  const search = Route.useSearch();
+  const [prepOpen, setPrepOpen] = useState(!!search.prep);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (!customer) return <p className="text-sm text-muted-foreground">Account not found.</p>;
@@ -93,7 +100,7 @@ function Account360() {
         onOpenChange={setPrepOpen}
       />
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue={search.tab ?? "overview"}>
         <TabsList className="flex h-auto flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
