@@ -18,7 +18,7 @@ import { AnalystTab } from "@/components/account/AnalystTab";
 import { PrepareCallDialog } from "@/components/account/PrepareCallDialog";
 import { PhoneCall } from "lucide-react";
 
-type AccountSearch = { tab?: string; prep?: boolean };
+type AccountSearch = { tab: string | undefined; prep: boolean };
 
 export const Route = createFileRoute("/customers/$customerId/")({
   validateSearch: (search: Record<string, unknown>): AccountSearch => ({
