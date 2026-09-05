@@ -31,11 +31,18 @@ export function Shell({ children }: { children: ReactNode }) {
               Dashboard
             </Link>
             <Link
+              to="/accounts"
+              activeProps={{ className: "bg-secondary text-foreground" }}
+              className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Accounts
+            </Link>
+            <Link
               to="/setup"
               activeProps={{ className: "bg-secondary text-foreground" }}
               className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             >
-              Product Setup
+              Product Adoption
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-2">
