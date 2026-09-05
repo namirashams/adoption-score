@@ -9,6 +9,15 @@ import {
   allUsageQuery,
   customersQuery,
 } from "@/lib/queries";
+import {
+  allActionItemsQuery,
+  allPainPointsQuery,
+  allTimelineQuery,
+} from "@/lib/account-queries";
+import { effectiveStatus, healthTag, renewalLabel, type HealthSignals } from "@/lib/account";
+import { Tag, healthTone } from "@/components/account/badges";
+import { QuickActions } from "@/components/account/QuickActions";
+import { NeedingAttention, UpcomingCalls } from "@/components/account/DashboardPanels";
 import { useCompany } from "@/lib/company-context";
 import { computeScore, type Feature, type Priority, type UsageRow } from "@/lib/scoring";
 import { PriorityBadge, TrendIndicator } from "@/components/indicators";
@@ -53,6 +62,9 @@ function Dashboard() {
   const { data: usage = [] } = useQuery(allUsageQuery());
   const { data: logins = [] } = useQuery(allLoginStatsQuery());
   const { data: recs = [] } = useQuery(allRecommendationsQuery());
+  const { data: actionItems = [] } = useQuery(allActionItemsQuery());
+  const { data: allPains = [] } = useQuery(allPainPointsQuery());
+  const { data: allEvents = [] } = useQuery(allTimelineQuery());
 
   const [sortBy, setSortBy] = useState<"adoption-asc" | "adoption-desc" | "name" | "renewal">(
     "adoption-asc",
@@ -104,9 +116,50 @@ function Dashboard() {
           : opps.length
             ? "Low"
             : null;
-      return { customer, score, oppCount: opps.length, oppConfidence: best };
+      const custActions = actionItems.filter((a) => a.customer_id === customer.id);
+      const openActions = custActions.filter((a) => effectiveStatus(a) !== "Completed").length;
+      const overdueActions = custActions.filter((a) => effectiveStatus(a) === "Overdue").length;
+      const custPains = allPains.filter((p) => p.customer_id === customer.id);
+      const openPains = custPains.filter((p) => p.status !== "Resolved");
+      const lastEvent = allEvents
+        .filter((e) => e.customer_id === customer.id)
+        .map((e) => e.event_date)
+        .sort()
+        .at(-1);
+      const renewalInDays = customer.renewal_date
+        ? Math.round((new Date(customer.renewal_date).getTime() - Date.now()) / 86400000)
+        : null;
+      const signals: HealthSignals = {
+        adoptionTrend: score.purchased.length ? score.trend : null,
+        openPainPoints: custPains.length ? openPains.length : null,
+        overdueActions: custActions.length ? overdueActions : null,
+        renewalInDays,
+        daysSinceLastInteraction: lastEvent
+          ? Math.round((Date.now() - new Date(lastEvent).getTime()) / 86400000)
+          : null,
+      };
+      const reasons: string[] = [];
+      if (score.trend === "Declining") reasons.push("Adoption declining");
+      if (overdueActions > 0) reasons.push(`${overdueActions} overdue action items`);
+      if (
+        openPains.some(
+          (p) => Date.now() - new Date(p.date_raised).getTime() > 14 * 86400000,
+        )
+      )
+        reasons.push("Open pain point older than 14 days");
+      if (renewalInDays != null && renewalInDays <= 60 && renewalInDays >= 0)
+        reasons.push("Renewal within 60 days");
+      return {
+        customer,
+        score,
+        oppCount: opps.length,
+        oppConfidence: best,
+        openActions,
+        health: healthTag(signals),
+        reasons,
+      };
     });
-  }, [customers, features, links, usage, logins, recs]);
+  }, [customers, features, links, usage, logins, recs, actionItems, allPains, allEvents]);
 
   const filtered = useMemo(() => {
     let out = rows;
@@ -160,6 +213,12 @@ function Dashboard() {
             {filtered.length} account{filtered.length === 1 ? "" : "s"} shown
           </p>
         </div>
+        <QuickActions customers={customers} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <UpcomingCalls customers={customers} />
+        <NeedingAttention rows={rows.map((r) => ({ customer: r.customer, reasons: r.reasons }))} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
@@ -231,12 +290,14 @@ function Dashboard() {
               <th className="px-4 py-3 font-medium">Adoption</th>
               <th className="px-4 py-3 font-medium">Trend</th>
               <th className="px-4 py-3 font-medium">Priority</th>
+              <th className="px-4 py-3 font-medium">Health</th>
               <th className="px-4 py-3 font-medium">Expansion opportunity</th>
               <th className="px-4 py-3 font-medium">Renewal</th>
+              <th className="px-4 py-3 font-medium">Open actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(({ customer, score, oppCount, oppConfidence }) => (
+            {filtered.map(({ customer, score, oppCount, oppConfidence, health, openActions }) => (
               <tr
                 key={customer.id}
                 className="border-b border-border last:border-0 transition-colors hover:bg-secondary/60"
@@ -272,19 +333,23 @@ function Dashboard() {
                 <td className="px-4 py-3">
                   <PriorityBadge priority={score.priority} />
                 </td>
+                <td className="px-4 py-3">
+                  <Tag tone={healthTone(health)}>{health}</Tag>
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {oppCount
                     ? `${oppCount} identified · ${oppConfidence} confidence`
                     : "Not generated"}
                 </td>
                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                  {customer.renewal_date ?? "—"}
+                  {renewalLabel(customer.renewal_date)}
                 </td>
+                <td className="px-4 py-3 tabular-nums">{openActions}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                   No customers match these filters.
                 </td>
               </tr>
