@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { contactsQuery } from "@/lib/account-queries";
+import { createContact, deleteContact, updateContact } from "@/lib/contacts.functions";
 import { CONTACT_ROLES, type Contact } from "@/lib/account";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,7 @@ export function ContactsTab({ customerId }: { customerId: string }) {
   const add = useMutation({
     mutationFn: async () => {
       if (!draft.name.trim()) throw new Error("Name is required");
-      const { error } = await supabase.from("contacts").insert({ ...draft, customer_id: customerId });
-      if (error) throw new Error(error.message);
+      await createContact({ data: { ...draft, customerId } });
     },
     onSuccess: () => {
       setDraft(blank);
@@ -36,17 +35,16 @@ export function ContactsTab({ customerId }: { customerId: string }) {
 
   const update = useMutation({
     mutationFn: async (c: Contact) => {
-      const { error } = await supabase
-        .from("contacts")
-        .update({
+      await updateContact({
+        data: {
+          id: c.id,
           name: c.name,
           designation: c.designation,
           email: c.email,
           phone: c.phone,
-          roles: c.roles,
-        })
-        .eq("id", c.id);
-      if (error) throw new Error(error.message);
+          roles: c.roles ?? [],
+        },
+      });
     },
     onSuccess: () => {
       setEditing(null);
@@ -58,11 +56,12 @@ export function ContactsTab({ customerId }: { customerId: string }) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contacts").delete().eq("id", id);
-      if (error) throw new Error(error.message);
+      await deleteContact({ data: { id } });
     },
     onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
   });
+
 
   const toggleRole = (roles: string[], role: string) =>
     roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
