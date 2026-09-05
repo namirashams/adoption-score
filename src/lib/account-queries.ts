@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listContacts } from "./contacts.functions";
 import type { ActionItem, Contact, Meeting, Objective, PainPoint, TimelineEvent } from "./account";
 
 const unwrap = <T,>(res: { data: unknown; error: { message: string } | null }): T => {
@@ -10,15 +11,9 @@ const unwrap = <T,>(res: { data: unknown; error: { message: string } | null }): 
 export const contactsQuery = (customerId: string) =>
   queryOptions({
     queryKey: ["contacts", customerId],
-    queryFn: async () =>
-      unwrap<Contact[]>(
-        await supabase
-          .from("contacts")
-          .select("*")
-          .eq("customer_id", customerId)
-          .order("created_at"),
-      ),
+    queryFn: async () => (await listContacts({ data: { customerId } })) as Contact[],
   });
+
 
 export const objectivesQuery = (customerId: string) =>
   queryOptions({
