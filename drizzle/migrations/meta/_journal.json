@@ -8,6 +8,13 @@
       "when": 1788350210411,
       "tag": "0000_account_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788571133605,
+      "tag": "0001_lock_down_contacts_pii",
+      "breakpoints": true
     }
   ]
 }
