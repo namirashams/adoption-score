@@ -29,6 +29,11 @@ export type Customer = {
   pain_points: string;
   use_cases: string;
   renewal_date: string | null;
+  account_owner?: string;
+  customer_since?: string | null;
+  contract_value?: number | null;
+  contract_status?: string;
+  account_status?: string;
 };
 
 export type TrendLabel = "Improving" | "Declining" | "Stable" | "New usage" | "No data";
