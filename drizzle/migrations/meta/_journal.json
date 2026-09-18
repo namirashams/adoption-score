@@ -15,6 +15,13 @@
       "when": 1788571133605,
       "tag": "0001_lock_down_contacts_pii",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789753250508,
+      "tag": "0002_create_customer_signals",
+      "breakpoints": true
     }
   ]
 }
