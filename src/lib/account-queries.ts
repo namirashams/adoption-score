@@ -1,7 +1,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listContacts } from "./contacts.functions";
-import type { ActionItem, Contact, Meeting, Objective, PainPoint, TimelineEvent } from "./account";
+import type {
+  ActionItem,
+  Contact,
+  CustomerSignal,
+  Meeting,
+  Objective,
+  PainPoint,
+  TimelineEvent,
+} from "./account";
 
 const unwrap = <T,>(res: { data: unknown; error: { message: string } | null }): T => {
   if (res.error) throw new Error(res.error.message);
