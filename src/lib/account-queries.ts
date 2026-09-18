@@ -105,3 +105,17 @@ export const allTimelineQuery = () =>
     queryKey: ["timeline_events", "all"],
     queryFn: async () => unwrap<TimelineEvent[]>(await supabase.from("timeline_events").select("*")),
   });
+
+export const signalsQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["customer_signals", customerId],
+    queryFn: async () =>
+      unwrap<CustomerSignal[]>(
+        await supabase
+          .from("customer_signals")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("date_noticed", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ),
+  });
