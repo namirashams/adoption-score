@@ -202,6 +202,50 @@ export type Database = {
           },
         ]
       }
+      customer_signals: {
+        Row: {
+          created_at: string
+          customer_id: string
+          date_noticed: string
+          id: string
+          interpretation: string
+          interpreted_at: string | null
+          raw_text: string
+          signal_type: string
+          source_url: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          date_noticed?: string
+          id?: string
+          interpretation?: string
+          interpreted_at?: string | null
+          raw_text?: string
+          signal_type?: string
+          source_url?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          date_noticed?: string
+          id?: string
+          interpretation?: string
+          interpreted_at?: string | null
+          raw_text?: string
+          signal_type?: string
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_signals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           account_owner: string

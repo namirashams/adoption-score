@@ -301,3 +301,43 @@ ${JSON.stringify(signals, null, 2)}`,
     );
     return { summary: summary.trim(), signals };
   });
+
+/** 6: "Why this matters" interpretation of a manually logged external signal. */
+export const interpretSignal = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        customerId: z.string().uuid(),
+        signalType: z.string().min(1).max(60),
+        dateNoticed: z.string().min(1).max(20),
+        rawText: z.string().trim().min(1).max(8000),
+        sourceUrl: z.string().trim().max(500).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const ctx = await loadAccountContext(data.customerId);
+    const scoped = {
+      customer: ctx.customer,
+      objectives: ctx.objectives,
+      openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
+      adoption: ctx.adoption,
+      recentMeetings: ctx.meetings.slice(0, 3),
+    };
+    const text = await callAI(
+      "You are a Customer Success analyst. You write a short 'Why this matters' interpretation of an external market signal. 2-3 sentences, plain text, no headings, no bullet points, no invented facts.",
+      `An external signal about the customer's organisation was logged.
+
+SIGNAL TYPE: ${data.signalType}
+DATE NOTICED: ${data.dateNoticed}
+SOURCE: ${data.sourceUrl || "not provided"}
+RAW NOTES:
+${data.rawText}
+
+ACCOUNT CONTEXT (JSON):
+${JSON.stringify(scoped, null, 2)}
+
+Explain in 2-3 sentences how this signal might affect the account relationship, renewal risk, or expansion opportunity. Ground it in the account context where relevant. If the notes are too vague to interpret, say so plainly.`,
+    );
+    return { interpretation: text.trim() };
+  });

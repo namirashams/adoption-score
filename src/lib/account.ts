@@ -145,3 +145,25 @@ export function healthTag(s: HealthSignals): HealthTag {
   if (risk >= 1) return "Medium";
   return "Healthy";
 }
+
+export const SIGNAL_TYPES = [
+  "Leadership Change",
+  "Funding/Financial",
+  "Layoffs/Restructuring",
+  "Product Launch",
+  "Expansion",
+  "Hiring Trend",
+  "Other",
+] as const;
+
+export type CustomerSignal = {
+  id: string;
+  customer_id: string;
+  signal_type: string;
+  date_noticed: string;
+  raw_text: string;
+  source_url: string;
+  interpretation: string;
+  interpreted_at: string | null;
+  created_at: string;
+};

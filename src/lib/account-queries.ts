@@ -1,7 +1,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listContacts } from "./contacts.functions";
-import type { ActionItem, Contact, Meeting, Objective, PainPoint, TimelineEvent } from "./account";
+import type {
+  ActionItem,
+  Contact,
+  CustomerSignal,
+  Meeting,
+  Objective,
+  PainPoint,
+  TimelineEvent,
+} from "./account";
 
 const unwrap = <T,>(res: { data: unknown; error: { message: string } | null }): T => {
   if (res.error) throw new Error(res.error.message);
@@ -104,4 +112,18 @@ export const allTimelineQuery = () =>
   queryOptions({
     queryKey: ["timeline_events", "all"],
     queryFn: async () => unwrap<TimelineEvent[]>(await supabase.from("timeline_events").select("*")),
+  });
+
+export const signalsQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["customer_signals", customerId],
+    queryFn: async () =>
+      unwrap<CustomerSignal[]>(
+        await supabase
+          .from("customer_signals")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("date_noticed", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ),
   });
