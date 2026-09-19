@@ -175,3 +175,20 @@ export type CustomerInsight = {
   reasoning: string;
   created_at: string;
 };
+
+export const CURRENCIES = [
+  { code: "USD", symbol: "$" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "INR", symbol: "₹" },
+  { code: "AED", symbol: "AED " },
+  { code: "SGD", symbol: "S$" },
+  { code: "AUD", symbol: "A$" },
+  { code: "CAD", symbol: "C$" },
+] as const;
+
+export function formatMoney(value: number | null | undefined, currency = "USD") {
+  if (value == null) return "—";
+  const symbol = CURRENCIES.find((c) => c.code === currency)?.symbol ?? `${currency} `;
+  return `${symbol}${value.toLocaleString()}`;
+}
