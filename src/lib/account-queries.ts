@@ -4,6 +4,7 @@ import { listContacts } from "./contacts.functions";
 import type {
   ActionItem,
   Contact,
+  CustomerInsight,
   CustomerSignal,
   Meeting,
   Objective,
