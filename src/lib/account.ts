@@ -167,3 +167,11 @@ export type CustomerSignal = {
   interpreted_at: string | null;
   created_at: string;
 };
+
+export type CustomerInsight = {
+  id: string;
+  customer_id: string;
+  insight: string;
+  reasoning: string;
+  created_at: string;
+};

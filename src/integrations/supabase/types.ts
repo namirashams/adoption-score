@@ -176,6 +176,38 @@ export type Database = {
           },
         ]
       }
+      customer_insights: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          insight: string
+          reasoning: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          insight?: string
+          reasoning?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          insight?: string
+          reasoning?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_insights_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_login_stats: {
         Row: {
           customer_id: string

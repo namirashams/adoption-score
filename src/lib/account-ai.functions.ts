@@ -341,3 +341,116 @@ Explain in 2-3 sentences how this signal might affect the account relationship, 
     );
     return { interpretation: text.trim() };
   });
+
+/** Streaming call to the reasoning model on the gateway Responses API. */
+async function callAstra(instructions: string, input: string) {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Lovable-API-Key": process.env["LOVABLE_API_KEY"] ?? "",
+      "X-Lovable-AIG-SDK": "fetch",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-6-astra",
+      instructions,
+      input,
+      stream: true,
+      reasoning: { effort: "low", summary: "auto" },
+      include: ["reasoning.encrypted_content"],
+    }),
+  });
+  if (res.status === 429) throw new Error("AI rate limit reached. Please try again shortly.");
+  if (res.status === 402) throw new Error("AI credits exhausted. Please add credits.");
+  if (!res.ok || !res.body) throw new Error(`AI request failed (${res.status})`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        const evt = JSON.parse(payload) as { type?: string; delta?: string };
+        if (evt.type === "response.output_text.delta" && typeof evt.delta === "string") {
+          text += evt.delta;
+        }
+      } catch {
+        /* ignore partial frames */
+      }
+    }
+  }
+  return text;
+}
+
+/** 7: one shareable, customer-facing insight for today, stored as history (last 5 kept). */
+export const generateTodaysInsight = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ customerId: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const sb = await db();
+    const ctx = await loadAccountContext(data.customerId);
+    const { data: signals } = await sb
+      .from("customer_signals")
+      .select("signal_type, date_noticed, raw_text, interpretation")
+      .eq("customer_id", data.customerId)
+      .order("date_noticed", { ascending: false })
+      .limit(5);
+
+    const scoped = {
+      customer: ctx.customer,
+      adoption: ctx.adoption,
+      openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
+      objectives: ctx.objectives,
+      recentMeetings: ctx.meetings.slice(0, 3),
+      customerSignals: signals ?? [],
+    };
+
+    const raw = await callAstra(
+      "You help a Customer Success Manager write one short, shareable insight to send to a customer today. Return strict JSON only, no markdown fences, no prose.",
+      `Using ONLY the account data below, write ONE insight the CSM could copy and send to the customer today.
+It could be a usage milestone worth celebrating, a feature they are underusing that solves a pain point they mentioned, or an observation tied to something happening in their organisation.
+
+Rules:
+- "insight": 1-2 sentences, written directly to the customer, warm and professional, no internal CSM jargon, no greetings or sign-offs, no invented facts or numbers.
+- "reasoning": exactly 1 sentence for the CSM explaining the data behind the suggestion.
+- If the account data is too thin to say anything specific, set insight to "" and reasoning to "Not enough account data to suggest an insight today."
+
+ACCOUNT DATA (JSON):
+${JSON.stringify(scoped, null, 2)}
+
+Return strict JSON: {"insight":"","reasoning":""}`,
+    );
+    const parsed = parseJson<{ insight: string; reasoning: string }>(raw, {
+      insight: "",
+      reasoning: "Not enough account data to suggest an insight today.",
+    });
+
+    const { data: inserted, error } = await sb
+      .from("customer_insights")
+      .insert({
+        customer_id: data.customerId,
+        insight: (parsed.insight ?? "").trim(),
+        reasoning: (parsed.reasoning ?? "").trim(),
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { data: all } = await sb
+      .from("customer_insights")
+      .select("id")
+      .eq("customer_id", data.customerId)
+      .order("created_at", { ascending: false });
+    const stale = (all ?? []).slice(5).map((r) => r.id);
+    if (stale.length) await sb.from("customer_insights").delete().in("id", stale);
+
+    return inserted;
+  });

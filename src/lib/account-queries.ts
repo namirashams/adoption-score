@@ -4,6 +4,7 @@ import { listContacts } from "./contacts.functions";
 import type {
   ActionItem,
   Contact,
+  CustomerInsight,
   CustomerSignal,
   Meeting,
   Objective,
@@ -125,5 +126,19 @@ export const signalsQuery = (customerId: string) =>
           .eq("customer_id", customerId)
           .order("date_noticed", { ascending: false })
           .order("created_at", { ascending: false }),
+      ),
+  });
+
+export const insightsQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["customer_insights", customerId],
+    queryFn: async () =>
+      unwrap<CustomerInsight[]>(
+        await supabase
+          .from("customer_insights")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false })
+          .limit(5),
       ),
   });

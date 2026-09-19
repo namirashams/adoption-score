@@ -22,6 +22,13 @@
       "when": 1789753250508,
       "tag": "0002_create_customer_signals",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789785630071,
+      "tag": "0003_create_customer_insights",
+      "breakpoints": true
     }
   ]
 }
