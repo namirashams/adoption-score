@@ -127,3 +127,17 @@ export const signalsQuery = (customerId: string) =>
           .order("created_at", { ascending: false }),
       ),
   });
+
+export const insightsQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["customer_insights", customerId],
+    queryFn: async () =>
+      unwrap<CustomerInsight[]>(
+        await supabase
+          .from("customer_insights")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ),
+  });
