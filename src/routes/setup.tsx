@@ -13,6 +13,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -45,6 +55,20 @@ function SetupPage() {
   const { companies, activeCompany, activeCompanyId, setActiveCompanyId } = useCompany();
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const { data: accountCount = 0 } = useQuery({
+    queryKey: ["company-account-count", activeCompanyId],
+    enabled: !!activeCompanyId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("customers")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", activeCompanyId!);
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    },
+  });
 
   useEffect(() => {
     setName(activeCompany?.name ?? "");
@@ -96,6 +120,47 @@ function SetupPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteCompany = useMutation({
+    mutationFn: async () => {
+      if (!activeCompanyId) throw new Error("No company selected");
+      const [{ data: customerRows }, { data: featureRows }] = await Promise.all([
+        supabase.from("customers").select("id").eq("company_id", activeCompanyId),
+        supabase.from("features").select("id").eq("company_id", activeCompanyId),
+      ]);
+      const customerIds = (customerRows ?? []).map((c) => c.id);
+      const featureIds = (featureRows ?? []).map((f) => f.id);
+
+      if (featureIds.length) {
+        await supabase.from("usage").delete().in("feature_id", featureIds);
+        await supabase.from("customer_features").delete().in("feature_id", featureIds);
+      }
+      if (customerIds.length) {
+        await supabase.from("usage").delete().in("customer_id", customerIds);
+        await supabase.from("customer_features").delete().in("customer_id", customerIds);
+        await supabase.from("customer_login_stats").delete().in("customer_id", customerIds);
+        await supabase.from("ai_recommendations").delete().in("customer_id", customerIds);
+        const { error: custErr } = await supabase
+          .from("customers")
+          .delete()
+          .in("id", customerIds);
+        if (custErr) throw new Error(custErr.message);
+      }
+      if (featureIds.length) {
+        const { error: featErr } = await supabase.from("features").delete().in("id", featureIds);
+        if (featErr) throw new Error(featErr.message);
+      }
+      const { error } = await supabase.from("companies").delete().eq("id", activeCompanyId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
+      setConfirmDelete(false);
+      setActiveCompanyId(null);
+      await qc.invalidateQueries();
+      toast.success("Company deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -105,9 +170,20 @@ function SetupPage() {
             {companies.length} company profile{companies.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => createCompany.mutate()}>
-          <Plus className="size-4" /> New company
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => createCompany.mutate()}>
+            <Plus className="size-4" /> New company
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-danger"
+            disabled={!activeCompanyId}
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="size-4" /> Delete company
+          </Button>
+        </div>
       </div>
 
       <section className="rounded-lg border border-border bg-card p-6">
@@ -134,6 +210,31 @@ function SetupPage() {
       </section>
 
       <FeatureTable companyId={activeCompanyId} />
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{activeCompany?.name ?? "this company"}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the company profile, its feature catalog and{" "}
+              {accountCount} linked account{accountCount === 1 ? "" : "s"} with all their contacts,
+              meetings, signals and notes. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteCompany.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteCompany.mutate();
+              }}
+            >
+              {deleteCompany.isPending ? "Deleting…" : "Delete company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
