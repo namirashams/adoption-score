@@ -29,6 +29,13 @@
       "when": 1789785630071,
       "tag": "0003_create_customer_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789785940713,
+      "tag": "0004_add_contract_currency",
+      "breakpoints": true
     }
   ]
 }

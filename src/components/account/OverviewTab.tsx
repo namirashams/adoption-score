@@ -5,7 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { customerQuery, featuresQuery } from "@/lib/queries";
 import { actionItemsQuery, painPointsQuery, timelineQuery } from "@/lib/account-queries";
 import { accountHealthSummary } from "@/lib/account-ai.functions";
-import { ACCOUNT_STATUSES, effectiveStatus, renewalLabel } from "@/lib/account";
+import {
+  ACCOUNT_STATUSES,
+  CURRENCIES,
+  effectiveStatus,
+  formatMoney,
+  renewalLabel,
+} from "@/lib/account";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +50,7 @@ export function OverviewTab({ customerId }: { customerId: string }) {
     account_owner: "",
     customer_since: "",
     contract_value: "",
+    contract_currency: "USD",
     renewal_date: "",
     contract_status: "",
     account_status: "Active",
@@ -56,6 +63,7 @@ export function OverviewTab({ customerId }: { customerId: string }) {
       account_owner: customer.account_owner ?? "",
       customer_since: customer.customer_since ?? "",
       contract_value: customer.contract_value == null ? "" : String(customer.contract_value),
+      contract_currency: customer.contract_currency || "USD",
       renewal_date: customer.renewal_date ?? "",
       contract_status: customer.contract_status ?? "",
       account_status: customer.account_status || "Active",
@@ -71,6 +79,7 @@ export function OverviewTab({ customerId }: { customerId: string }) {
           account_owner: form.account_owner,
           customer_since: form.customer_since || null,
           contract_value: form.contract_value === "" ? null : Number(form.contract_value),
+          contract_currency: form.contract_currency,
           renewal_date: form.renewal_date || null,
           contract_status: form.contract_status,
           account_status: form.account_status,
@@ -125,12 +134,30 @@ export function OverviewTab({ customerId }: { customerId: string }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="cv">Contract value</Label>
-            <Input
-              id="cv"
-              type="number"
-              value={form.contract_value}
-              onChange={(e) => setForm({ ...form, contract_value: e.target.value })}
-            />
+            <div className="flex gap-2">
+              <Select
+                value={form.contract_currency}
+                onValueChange={(v) => setForm({ ...form, contract_currency: v })}
+              >
+                <SelectTrigger className="w-28" aria-label="Currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.symbol.trim()} {c.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                id="cv"
+                type="number"
+                className="flex-1"
+                value={form.contract_value}
+                onChange={(e) => setForm({ ...form, contract_value: e.target.value })}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="renew">Renewal date</Label>
@@ -174,7 +201,12 @@ export function OverviewTab({ customerId }: { customerId: string }) {
             {save.isPending ? "Saving…" : "Save account details"}
           </Button>
           <span className="text-sm text-muted-foreground">
-            Plan: {customer?.plan || "—"} · Renewal {renewalLabel(form.renewal_date || null)}
+            Plan: {customer?.plan || "—"} · Contract{" "}
+            {formatMoney(
+              form.contract_value === "" ? null : Number(form.contract_value),
+              form.contract_currency,
+            )}{" "}
+            · Renewal {renewalLabel(form.renewal_date || null)}
           </span>
         </div>
 

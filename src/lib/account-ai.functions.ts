@@ -128,6 +128,7 @@ async function loadAccountContext(customerId: string) {
       account_owner: customer.account_owner,
       customer_since: customer.customer_since,
       contract_value: customer.contract_value,
+      contract_currency: customer.contract_currency,
       contract_status: customer.contract_status,
       account_status: customer.account_status,
       renewal_date: customer.renewal_date,

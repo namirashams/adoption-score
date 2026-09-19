@@ -284,6 +284,7 @@ export type Database = {
           account_status: string
           business_objectives: string
           company_id: string
+          contract_currency: string
           contract_status: string
           contract_value: number | null
           created_at: string
@@ -303,6 +304,7 @@ export type Database = {
           account_status?: string
           business_objectives?: string
           company_id: string
+          contract_currency?: string
           contract_status?: string
           contract_value?: number | null
           created_at?: string
@@ -322,6 +324,7 @@ export type Database = {
           account_status?: string
           business_objectives?: string
           company_id?: string
+          contract_currency?: string
           contract_status?: string
           contract_value?: number | null
           created_at?: string
