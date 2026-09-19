@@ -16,6 +16,7 @@ import { MeetingsTab } from "@/components/account/MeetingsTab";
 import { ActionItemsTab } from "@/components/account/ActionItemsTab";
 import { AnalystTab } from "@/components/account/AnalystTab";
 import { SignalsTab } from "@/components/account/SignalsTab";
+import { InsightTab } from "@/components/account/InsightTab";
 import { PrepareCallDialog } from "@/components/account/PrepareCallDialog";
 import { PhoneCall } from "lucide-react";
 
@@ -113,6 +114,7 @@ function Account360() {
           <TabsTrigger value="meetings">Meetings</TabsTrigger>
           <TabsTrigger value="actions">Action Items</TabsTrigger>
           <TabsTrigger value="signals">Customer Signals</TabsTrigger>
+          <TabsTrigger value="insight">Today&apos;s Insight</TabsTrigger>
           <TabsTrigger value="analyst">AI Account Analyst</TabsTrigger>
         </TabsList>
 
@@ -139,6 +141,9 @@ function Account360() {
         </TabsContent>
         <TabsContent value="signals" className="mt-6">
           <SignalsTab customerId={customerId} />
+        </TabsContent>
+        <TabsContent value="insight" className="mt-6">
+          <InsightTab customerId={customerId} />
         </TabsContent>
         <TabsContent value="analyst" className="mt-6">
           <AnalystTab customerId={customerId} />
