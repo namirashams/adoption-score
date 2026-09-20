@@ -33,6 +33,7 @@ export type Customer = {
   customer_since?: string | null;
   contract_value?: number | null;
   contract_status?: string;
+  contract_currency?: string;
   account_status?: string;
 };
 
