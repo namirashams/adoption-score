@@ -35,6 +35,7 @@ export type Customer = {
   contract_status?: string;
   contract_currency?: string;
   account_status?: string;
+  custom_fields?: unknown;
 };
 
 export type TrendLabel = "Improving" | "Declining" | "Stable" | "New usage" | "No data";

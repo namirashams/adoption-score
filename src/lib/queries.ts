@@ -1,8 +1,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Feature, UsageRow } from "./scoring";
+import type { MetricValue } from "./framework-scoring";
 
-export type Company = { id: string; name: string; notes: string };
+export type Company = {
+  id: string;
+  name: string;
+  notes: string;
+  framework_type: string;
+  config: unknown;
+};
 export type LoginStats = {
   customer_id: string;
   login_days_current: number;
@@ -114,4 +121,20 @@ export const recommendationQuery = (customerId: string) =>
       if (res.error) throw new Error(res.error.message);
       return res.data as Recommendation | null;
     },
+  });
+
+export const allMetricValuesQuery = () =>
+  queryOptions({
+    queryKey: ["metric_values", "all"],
+    queryFn: async () =>
+      unwrap<MetricValue[]>(await supabase.from("customer_metric_values").select("*")),
+  });
+
+export const metricValuesQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["metric_values", customerId],
+    queryFn: async () =>
+      unwrap<MetricValue[]>(
+        await supabase.from("customer_metric_values").select("*").eq("customer_id", customerId),
+      ),
   });
