@@ -83,19 +83,25 @@ export type Database = {
       }
       companies: {
         Row: {
+          config: Json
           created_at: string
+          framework_type: string
           id: string
           name: string
           notes: string
         }
         Insert: {
+          config?: Json
           created_at?: string
+          framework_type?: string
           id?: string
           name: string
           notes?: string
         }
         Update: {
+          config?: Json
           created_at?: string
+          framework_type?: string
           id?: string
           name?: string
           notes?: string
@@ -234,6 +240,38 @@ export type Database = {
           },
         ]
       }
+      customer_metric_values: {
+        Row: {
+          current_value: number | null
+          customer_id: string
+          metric_key: string
+          prev_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          current_value?: number | null
+          customer_id: string
+          metric_key: string
+          prev_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          current_value?: number | null
+          customer_id?: string
+          metric_key?: string
+          prev_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_metric_values_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_signals: {
         Row: {
           created_at: string
@@ -288,6 +326,7 @@ export type Database = {
           contract_status: string
           contract_value: number | null
           created_at: string
+          custom_fields: Json
           customer_since: string | null
           customer_type: string
           id: string
@@ -308,6 +347,7 @@ export type Database = {
           contract_status?: string
           contract_value?: number | null
           created_at?: string
+          custom_fields?: Json
           customer_since?: string | null
           customer_type?: string
           id?: string
@@ -328,6 +368,7 @@ export type Database = {
           contract_status?: string
           contract_value?: number | null
           created_at?: string
+          custom_fields?: Json
           customer_since?: string | null
           customer_type?: string
           id?: string
