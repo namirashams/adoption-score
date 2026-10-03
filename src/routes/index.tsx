@@ -6,6 +6,7 @@ import {
   allFeaturesQuery,
   allLoginStatsQuery,
   allRecommendationsQuery,
+  allMetricValuesQuery,
   allUsageQuery,
   customersQuery,
 } from "@/lib/queries";

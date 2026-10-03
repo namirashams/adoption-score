@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { buildCompanyAiContext, frameworkOf, parseConfig } from "./company-config";
 
 /** Server-side publishable Supabase client (single-user tool, permissive policies). */
 async function db() {
@@ -98,6 +99,27 @@ async function loadAccountContext(customerId: string) {
       sb.from("ai_recommendations").select("*").eq("customer_id", customerId).maybeSingle(),
     ]);
 
+  const [{ data: companyRow }, { data: metricRows }] = await Promise.all([
+    sb.from("companies").select("name, framework_type, config").eq("id", customer.company_id).maybeSingle(),
+    sb.from("customer_metric_values").select("*").eq("customer_id", customerId),
+  ]);
+  const companyFramework = companyRow ? buildCompanyAiContext(companyRow) : null;
+  const metricCfg = parseConfig(companyRow?.config).metrics;
+  const successMetrics =
+    frameworkOf(companyRow) === "custom_metrics"
+      ? metricCfg.map((m) => {
+          const v = (metricRows ?? []).find((r) => r.metric_key === m.key);
+          return {
+            metric: m.label,
+            target: m.target,
+            unit: m.unit,
+            betterWhen: m.direction,
+            current: v?.current_value ?? null,
+            previous: v?.prev_value ?? null,
+          };
+        })
+      : null;
+
   const featureById = new Map((features.data ?? []).map((f) => [f.id, f]));
   const usageById = new Map((usage.data ?? []).map((u) => [u.feature_id, u]));
   const purchased = (links.data ?? []).map((l) => ({
@@ -120,7 +142,10 @@ async function loadAccountContext(customerId: string) {
         : "No data";
 
   return {
+    companyFramework,
+    successMetrics,
     customer: {
+      customFields: customer.custom_fields,
       name: customer.name,
       industry: customer.industry,
       plan: customer.plan,
@@ -319,6 +344,8 @@ export const interpretSignal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const ctx = await loadAccountContext(data.customerId);
     const scoped = {
+      companyFramework: ctx.companyFramework,
+      successMetrics: ctx.successMetrics,
       customer: ctx.customer,
       objectives: ctx.objectives,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
@@ -338,6 +365,7 @@ ${data.rawText}
 ACCOUNT CONTEXT (JSON):
 ${JSON.stringify(scoped, null, 2)}
 
+Use the companyFramework (success definition, signal guidance, risk/opportunity rules) to judge relevance.
 Explain in 2-3 sentences how this signal might affect the account relationship, renewal risk, or expansion opportunity. Ground it in the account context where relevant. If the notes are too vague to interpret, say so plainly.`,
     );
     return { interpretation: text.trim() };
@@ -406,6 +434,8 @@ export const generateTodaysInsight = createServerFn({ method: "POST" })
       .limit(5);
 
     const scoped = {
+      companyFramework: ctx.companyFramework,
+      successMetrics: ctx.successMetrics,
       customer: ctx.customer,
       adoption: ctx.adoption,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
@@ -417,7 +447,7 @@ export const generateTodaysInsight = createServerFn({ method: "POST" })
     const raw = await callAstra(
       "You help a Customer Success Manager write one short, shareable insight to send to a customer today. Return strict JSON only, no markdown fences, no prose.",
       `Using ONLY the account data below, write ONE insight the CSM could copy and send to the customer today.
-It could be a usage milestone worth celebrating, a feature they are underusing that solves a pain point they mentioned, or an observation tied to something happening in their organisation.
+Focus on what matters under the companyFramework (its success definition, metrics, risk/opportunity rules and AI instructions). It could be a milestone worth celebrating, progress toward a success metric, an underused capability that solves a pain point they mentioned, or an observation tied to something happening in their organisation.
 
 Rules:
 - "insight": 1-2 sentences, written directly to the customer, warm and professional, no internal CSM jargon, no greetings or sign-offs, no invented facts or numbers.
