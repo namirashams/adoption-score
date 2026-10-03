@@ -21,7 +21,8 @@ import { PrepareCallDialog } from "@/components/account/PrepareCallDialog";
 import { PhoneCall } from "lucide-react";
 import { CustomerSuccessTab } from "@/components/account/CustomerSuccessTab";
 import { useCompany } from "@/lib/company-context";
-import { frameworkLabel, frameworkOf } from "@/lib/company-config";
+import { frameworkLabel, frameworkOf, parseConfig } from "@/lib/company-config";
+import { CustomFieldsCard } from "@/components/account/CustomFieldsCard";
 
 type AccountSearch = { tab?: string; prep?: boolean };
 
@@ -125,7 +126,14 @@ function Account360() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <OverviewTab customerId={customerId} />
+          <div className="space-y-6">
+            <CustomFieldsCard
+              customerId={customerId}
+              fields={parseConfig(company?.config).custom_fields}
+              values={customer.custom_fields}
+            />
+            <OverviewTab customerId={customerId} />
+          </div>
         </TabsContent>
         <TabsContent value="contacts" className="mt-6">
           <ContactsTab customerId={customerId} />

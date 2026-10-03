@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { signalsQuery } from "@/lib/account-queries";
+import { customerQuery } from "@/lib/queries";
+import { useCompany } from "@/lib/company-context";
+import { parseConfig } from "@/lib/company-config";
 import { SIGNAL_TYPES, type CustomerSignal } from "@/lib/account";
 import { interpretSignal } from "@/lib/account-ai.functions";
 import { Button } from "@/components/ui/button";
@@ -31,6 +34,13 @@ export function SignalsTab({ customerId }: { customerId: string }) {
   const qc = useQueryClient();
   const { data: signals = [] } = useQuery(signalsQuery(customerId));
   const [draft, setDraft] = useState(emptyDraft);
+  const { data: customer } = useQuery(customerQuery(customerId));
+  const { companies } = useCompany();
+  const configured = parseConfig(companies.find((c) => c.id === customer?.company_id)?.config)
+    .signal_types;
+  const signalTypes: readonly string[] = configured.length
+    ? Array.from(new Set([...configured, "Other"]))
+    : SIGNAL_TYPES;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["customer_signals", customerId] });
 
@@ -162,7 +172,7 @@ export function SignalsTab({ customerId }: { customerId: string }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SIGNAL_TYPES.map((t) => (
+              {signalTypes.map((t) => (
                 <SelectItem key={t} value={t}>
                   {t}
                 </SelectItem>
