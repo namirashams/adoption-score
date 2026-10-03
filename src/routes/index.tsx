@@ -19,6 +19,8 @@ import { Tag, healthTone } from "@/components/account/badges";
 import { QuickActions } from "@/components/account/QuickActions";
 import { NeedingAttention, UpcomingCalls } from "@/components/account/DashboardPanels";
 import { useCompany } from "@/lib/company-context";
+import { frameworkOf, parseConfig } from "@/lib/company-config";
+import { computeCustomScore } from "@/lib/framework-scoring";
 import { computeScore, type Feature, type Priority, type UsageRow } from "@/lib/scoring";
 import { PriorityBadge, TrendIndicator } from "@/components/indicators";
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,7 @@ function Dashboard() {
   const { data: actionItems = [] } = useQuery(allActionItemsQuery());
   const { data: allPains = [] } = useQuery(allPainPointsQuery());
   const { data: allEvents = [] } = useQuery(allTimelineQuery());
+  const { data: metricValues = [] } = useQuery(allMetricValuesQuery());
 
   const [sortBy, setSortBy] = useState<"adoption-asc" | "adoption-desc" | "name" | "renewal">(
     "adoption-asc",
@@ -98,7 +101,14 @@ function Dashboard() {
     }
 
     return customers.map((customer) => {
-      const score = computeScore({
+      const company = companies.find((c) => c.id === customer.company_id);
+      const score =
+        frameworkOf(company) === "custom_metrics"
+          ? computeCustomScore(
+              parseConfig(company?.config).metrics,
+              metricValues.filter((v) => v.customer_id === customer.id),
+            ).score
+          : computeScore({
         customer,
         purchased: purchasedByCustomer.get(customer.id) ?? [],
         coreFeatureIds: coreByCustomer.get(customer.id) ?? new Set<string>(),
@@ -130,7 +140,7 @@ function Dashboard() {
         ? Math.round((new Date(customer.renewal_date).getTime() - Date.now()) / 86400000)
         : null;
       const signals: HealthSignals = {
-        adoptionTrend: score.purchased.length ? score.trend : null,
+        adoptionTrend: score.purchased.length || score.trend !== "No data" ? score.trend : null,
         openPainPoints: custPains.length ? openPains.length : null,
         overdueActions: custActions.length ? overdueActions : null,
         renewalInDays,
@@ -159,7 +169,7 @@ function Dashboard() {
         reasons,
       };
     });
-  }, [customers, features, links, usage, logins, recs, actionItems, allPains, allEvents]);
+  }, [customers, features, links, usage, logins, recs, actionItems, allPains, allEvents, companies, metricValues]);
 
   const filtered = useMemo(() => {
     let out = rows;
