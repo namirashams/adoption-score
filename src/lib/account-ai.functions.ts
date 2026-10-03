@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { buildCompanyAiContext, frameworkOf, parseConfig } from "./company-config";
 
 /** Server-side publishable Supabase client (single-user tool, permissive policies). */
 async function db() {
@@ -98,6 +99,27 @@ async function loadAccountContext(customerId: string) {
       sb.from("ai_recommendations").select("*").eq("customer_id", customerId).maybeSingle(),
     ]);
 
+  const [{ data: companyRow }, { data: metricRows }] = await Promise.all([
+    sb.from("companies").select("name, framework_type, config").eq("id", customer.company_id).maybeSingle(),
+    sb.from("customer_metric_values").select("*").eq("customer_id", customerId),
+  ]);
+  const companyFramework = companyRow ? buildCompanyAiContext(companyRow) : null;
+  const metricCfg = parseConfig(companyRow?.config).metrics;
+  const successMetrics =
+    frameworkOf(companyRow) === "custom_metrics"
+      ? metricCfg.map((m) => {
+          const v = (metricRows ?? []).find((r) => r.metric_key === m.key);
+          return {
+            metric: m.label,
+            target: m.target,
+            unit: m.unit,
+            betterWhen: m.direction,
+            current: v?.current_value ?? null,
+            previous: v?.prev_value ?? null,
+          };
+        })
+      : null;
+
   const featureById = new Map((features.data ?? []).map((f) => [f.id, f]));
   const usageById = new Map((usage.data ?? []).map((u) => [u.feature_id, u]));
   const purchased = (links.data ?? []).map((l) => ({
@@ -120,7 +142,10 @@ async function loadAccountContext(customerId: string) {
         : "No data";
 
   return {
+    companyFramework,
+    successMetrics,
     customer: {
+      customFields: customer.custom_fields,
       name: customer.name,
       industry: customer.industry,
       plan: customer.plan,
@@ -227,7 +252,7 @@ export const preCallBrief = createServerFn({ method: "POST" })
     const brief = await callAI(
       "You are a Customer Success pre-call briefing assistant. You return strict JSON only.",
       `Produce a concise pre-call brief (readable in 2-3 minutes) using ONLY the account data below.
-Do not invent details. If a section has no supporting data, write exactly "No information available" for it.
+Interpret everything through the companyFramework (success definition, metrics, risk/opportunity and expansion rules, CSM focus). For "product_adoption", summarise the company's success measure (feature adoption or successMetrics). Do not invent details. If a section has no supporting data, write exactly "No information available" for it.
 
 ACCOUNT DATA (JSON):
 ${JSON.stringify(scoped, null, 2)}
@@ -258,7 +283,7 @@ export const accountAnalystChat = createServerFn({ method: "POST" })
       .map((m) => `${m.role === "user" ? "CSM" : "Assistant"}: ${m.content}`)
       .join("\n");
     const answer = await callAI(
-      `Answer only using the account information provided. If the available information is insufficient to answer confidently, respond with "Insufficient information — you may want to check [specific source, e.g. recent meeting notes or support tickets]" rather than guessing or inventing details. For prioritization-style questions, structure your answer as: Immediate risk, Important issue, Opportunity, Recommended next action — each with a brief reason. Answer in plain text, concise.`,
+      `Answer only using the account information provided. If the available information is insufficient to answer confidently, respond with "Insufficient information — you may want to check [specific source, e.g. recent meeting notes or support tickets]" rather than guessing or inventing details. For prioritization-style questions, structure your answer as: Immediate risk, Important issue, Opportunity, Recommended next action — each with a brief reason. Judge risk, success and opportunity using the companyFramework (this company's definition of success, metrics, rules and AI instructions) and successMetrics when present — do not assume product feature adoption is the success measure unless the framework says so. Answer in plain text, concise.`,
       `ACCOUNT DATA (JSON):
 ${JSON.stringify(ctx, null, 2)}
 
@@ -280,7 +305,11 @@ export const accountHealthSummary = createServerFn({ method: "POST" })
     ).length;
     const lastEvent = ctx.timeline[0]?.event_date ?? ctx.meetings[0]?.meeting_date ?? null;
     const signals = {
-      adoptionTrend: ctx.adoption.purchasedFeatures.length ? ctx.adoption.trend : null,
+      adoptionTrend: ctx.adoption.purchasedFeatures.length
+        ? ctx.adoption.trend
+        : ctx.successMetrics?.some((m) => m.current != null)
+          ? "See success metrics"
+          : null,
       openPainPoints: ctx.painPoints.length ? openPain : null,
       overdueActions: ctx.actionItems.length ? overdue : null,
       renewalInDays: ctx.customer.renewal_date
@@ -298,7 +327,11 @@ export const accountHealthSummary = createServerFn({ method: "POST" })
       `Write a qualitative account health summary for ${ctx.customer.name} based ONLY on these signals. Do not invent details, do not give a numeric score.
 
 SIGNALS (null means no data):
-${JSON.stringify(signals, null, 2)}`,
+${JSON.stringify(signals, null, 2)}
+
+COMPANY SUCCESS FRAMEWORK:
+${JSON.stringify(ctx.companyFramework)}
+SUCCESS METRICS: ${JSON.stringify(ctx.successMetrics)}`,
     );
     return { summary: summary.trim(), signals };
   });
@@ -319,6 +352,8 @@ export const interpretSignal = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const ctx = await loadAccountContext(data.customerId);
     const scoped = {
+      companyFramework: ctx.companyFramework,
+      successMetrics: ctx.successMetrics,
       customer: ctx.customer,
       objectives: ctx.objectives,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
@@ -338,6 +373,7 @@ ${data.rawText}
 ACCOUNT CONTEXT (JSON):
 ${JSON.stringify(scoped, null, 2)}
 
+Use the companyFramework (success definition, signal guidance, risk/opportunity rules) to judge relevance.
 Explain in 2-3 sentences how this signal might affect the account relationship, renewal risk, or expansion opportunity. Ground it in the account context where relevant. If the notes are too vague to interpret, say so plainly.`,
     );
     return { interpretation: text.trim() };
@@ -406,6 +442,8 @@ export const generateTodaysInsight = createServerFn({ method: "POST" })
       .limit(5);
 
     const scoped = {
+      companyFramework: ctx.companyFramework,
+      successMetrics: ctx.successMetrics,
       customer: ctx.customer,
       adoption: ctx.adoption,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
@@ -417,7 +455,7 @@ export const generateTodaysInsight = createServerFn({ method: "POST" })
     const raw = await callAstra(
       "You help a Customer Success Manager write one short, shareable insight to send to a customer today. Return strict JSON only, no markdown fences, no prose.",
       `Using ONLY the account data below, write ONE insight the CSM could copy and send to the customer today.
-It could be a usage milestone worth celebrating, a feature they are underusing that solves a pain point they mentioned, or an observation tied to something happening in their organisation.
+Focus on what matters under the companyFramework (its success definition, metrics, risk/opportunity rules and AI instructions). It could be a milestone worth celebrating, progress toward a success metric, an underused capability that solves a pain point they mentioned, or an observation tied to something happening in their organisation.
 
 Rules:
 - "insight": 1-2 sentences, written directly to the customer, warm and professional, no internal CSM jargon, no greetings or sign-offs, no invented facts or numbers.
