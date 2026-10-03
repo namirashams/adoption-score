@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCompany } from "@/lib/company-context";
 import {
@@ -13,6 +13,7 @@ import { Plus } from "lucide-react";
 
 export function Shell({ children }: { children: ReactNode }) {
   const { companies, activeCompanyId, setActiveCompanyId } = useCompany();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,14 +43,16 @@ export function Shell({ children }: { children: ReactNode }) {
               activeProps={{ className: "bg-secondary text-foreground" }}
               className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             >
-              Product Adoption
+              Product Setup
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-2">
             <Select
               value={activeCompanyId ?? ""}
-              onValueChange={(v) => setActiveCompanyId(v)}
-              disabled={!companies.length}
+              onValueChange={(v) => {
+                if (v === "__new") navigate({ to: "/companies/new" });
+                else setActiveCompanyId(v);
+              }}
             >
               <SelectTrigger className="h-9 w-56 bg-background">
                 <SelectValue placeholder="No company yet" />
@@ -60,6 +63,7 @@ export function Shell({ children }: { children: ReactNode }) {
                     {c.name}
                   </SelectItem>
                 ))}
+                <SelectItem value="__new">+ Add company</SelectItem>
               </SelectContent>
             </Select>
             <Button asChild size="sm">

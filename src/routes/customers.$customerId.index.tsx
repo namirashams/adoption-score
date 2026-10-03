@@ -19,6 +19,9 @@ import { SignalsTab } from "@/components/account/SignalsTab";
 import { InsightTab } from "@/components/account/InsightTab";
 import { PrepareCallDialog } from "@/components/account/PrepareCallDialog";
 import { PhoneCall } from "lucide-react";
+import { CustomerSuccessTab } from "@/components/account/CustomerSuccessTab";
+import { useCompany } from "@/lib/company-context";
+import { frameworkLabel, frameworkOf } from "@/lib/company-config";
 
 type AccountSearch = { tab?: string; prep?: boolean };
 
@@ -54,6 +57,9 @@ function Account360() {
   const { data: actions = [] } = useQuery(actionItemsQuery(customerId));
   const search = Route.useSearch();
   const [prepOpen, setPrepOpen] = useState(!!search.prep);
+  const { companies } = useCompany();
+  const company = companies.find((c) => c.id === customer?.company_id) ?? null;
+  const framework = frameworkOf(company);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (!customer) return <p className="text-sm text-muted-foreground">Account not found.</p>;
@@ -109,7 +115,7 @@ function Account360() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="objectives">Objectives &amp; Pain Points</TabsTrigger>
-          <TabsTrigger value="adoption">Product Adoption</TabsTrigger>
+          <TabsTrigger value="adoption">{frameworkLabel(framework)}</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="meetings">Meetings</TabsTrigger>
           <TabsTrigger value="actions">Action Items</TabsTrigger>
@@ -128,7 +134,11 @@ function Account360() {
           <ObjectivesTab customerId={customerId} />
         </TabsContent>
         <TabsContent value="adoption" className="mt-6">
-          <AdoptionTab customerId={customerId} />
+          {framework === "custom_metrics" ? (
+            <CustomerSuccessTab customerId={customerId} companyConfig={company?.config} />
+          ) : (
+            <AdoptionTab customerId={customerId} />
+          )}
         </TabsContent>
         <TabsContent value="timeline" className="mt-6">
           <TimelineTab customerId={customerId} />
