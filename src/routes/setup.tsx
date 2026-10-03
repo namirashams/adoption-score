@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ConfigEditor } from "@/components/company/ConfigEditor";
+import { frameworkOf, parseConfig, type FrameworkType } from "@/lib/company-config";
+import type { Company } from "@/lib/queries";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,8 +174,10 @@ function SetupPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => createCompany.mutate()}>
-            <Plus className="size-4" /> New company
+          <Button asChild variant="outline" size="sm">
+            <Link to="/companies/new">
+              <Plus className="size-4" /> New company
+            </Link>
           </Button>
           <Button
             variant="outline"
@@ -209,7 +214,11 @@ function SetupPage() {
         </Button>
       </section>
 
-      <FeatureTable companyId={activeCompanyId} />
+      {activeCompany && <FrameworkPanel key={activeCompany.id} company={activeCompany} />}
+
+      {frameworkOf(activeCompany) === "product_adoption" && (
+        <FeatureTable companyId={activeCompanyId} />
+      )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
@@ -236,6 +245,46 @@ function SetupPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function FrameworkPanel({ company }: { company: Company }) {
+  const qc = useQueryClient();
+  const [framework, setFramework] = useState<FrameworkType>(frameworkOf(company));
+  const [config, setConfig] = useState(() => parseConfig(company.config));
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("companies")
+        .update({ framework_type: framework, config })
+        .eq("id", company.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Success framework saved");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <section className="rounded-lg border border-border bg-card p-6">
+      <h2 className="text-base font-semibold">Success framework</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        How customer success is measured for {company.name}. The AI uses this for insights, the
+        analyst, signals and call prep.
+      </p>
+      <div className="mt-4">
+        <ConfigEditor
+          framework={framework}
+          onFrameworkChange={setFramework}
+          config={config}
+          onChange={setConfig}
+        />
+      </div>
+      <Button className="mt-4" onClick={() => save.mutate()} disabled={save.isPending}>
+        {save.isPending ? "Saving…" : "Save framework"}
+      </Button>
+    </section>
   );
 }
 

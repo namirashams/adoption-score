@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersCustomerIdIndexRouteImport } from './routes/customers.$customerId.index'
 import { Route as CustomersCustomerIdEditRouteImport } from './routes/customers.$customerId.edit'
@@ -29,6 +30,11 @@ const AccountsRoute = AccountsRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesNewRoute = CompaniesNewRouteImport.update({
+  id: '/companies/new',
+  path: '/companies/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersNewRoute = CustomersNewRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/setup': typeof SetupRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/customers/new': typeof CustomersNewRoute
   '/customers/$customerId/edit': typeof CustomersCustomerIdEditRoute
   '/customers/$customerId/': typeof CustomersCustomerIdIndexRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/setup': typeof SetupRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/customers/new': typeof CustomersNewRoute
   '/customers/$customerId/edit': typeof CustomersCustomerIdEditRoute
   '/customers/$customerId': typeof CustomersCustomerIdIndexRoute
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/setup': typeof SetupRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/customers/new': typeof CustomersNewRoute
   '/customers/$customerId/edit': typeof CustomersCustomerIdEditRoute
   '/customers/$customerId/': typeof CustomersCustomerIdIndexRoute
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/setup'
+    | '/companies/new'
     | '/customers/new'
     | '/customers/$customerId/edit'
     | '/customers/$customerId/'
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/setup'
+    | '/companies/new'
     | '/customers/new'
     | '/customers/$customerId/edit'
     | '/customers/$customerId'
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/setup'
+    | '/companies/new'
     | '/customers/new'
     | '/customers/$customerId/edit'
     | '/customers/$customerId/'
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
   SetupRoute: typeof SetupRoute
+  CompaniesNewRoute: typeof CompaniesNewRoute
   CustomersNewRoute: typeof CustomersNewRoute
   CustomersCustomerIdEditRoute: typeof CustomersCustomerIdEditRoute
   CustomersCustomerIdIndexRoute: typeof CustomersCustomerIdIndexRoute
@@ -130,6 +143,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/new': {
+      id: '/companies/new'
+      path: '/companies/new'
+      fullPath: '/companies/new'
+      preLoaderRoute: typeof CompaniesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers/new': {
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
   SetupRoute: SetupRoute,
+  CompaniesNewRoute: CompaniesNewRoute,
   CustomersNewRoute: CustomersNewRoute,
   CustomersCustomerIdEditRoute: CustomersCustomerIdEditRoute,
   CustomersCustomerIdIndexRoute: CustomersCustomerIdIndexRoute,
