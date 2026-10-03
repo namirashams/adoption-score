@@ -252,7 +252,7 @@ export const preCallBrief = createServerFn({ method: "POST" })
     const brief = await callAI(
       "You are a Customer Success pre-call briefing assistant. You return strict JSON only.",
       `Produce a concise pre-call brief (readable in 2-3 minutes) using ONLY the account data below.
-Do not invent details. If a section has no supporting data, write exactly "No information available" for it.
+Interpret everything through the companyFramework (success definition, metrics, risk/opportunity and expansion rules, CSM focus). For "product_adoption", summarise the company's success measure (feature adoption or successMetrics). Do not invent details. If a section has no supporting data, write exactly "No information available" for it.
 
 ACCOUNT DATA (JSON):
 ${JSON.stringify(scoped, null, 2)}
@@ -283,7 +283,7 @@ export const accountAnalystChat = createServerFn({ method: "POST" })
       .map((m) => `${m.role === "user" ? "CSM" : "Assistant"}: ${m.content}`)
       .join("\n");
     const answer = await callAI(
-      `Answer only using the account information provided. If the available information is insufficient to answer confidently, respond with "Insufficient information — you may want to check [specific source, e.g. recent meeting notes or support tickets]" rather than guessing or inventing details. For prioritization-style questions, structure your answer as: Immediate risk, Important issue, Opportunity, Recommended next action — each with a brief reason. Answer in plain text, concise.`,
+      `Answer only using the account information provided. If the available information is insufficient to answer confidently, respond with "Insufficient information — you may want to check [specific source, e.g. recent meeting notes or support tickets]" rather than guessing or inventing details. For prioritization-style questions, structure your answer as: Immediate risk, Important issue, Opportunity, Recommended next action — each with a brief reason. Judge risk, success and opportunity using the companyFramework (this company's definition of success, metrics, rules and AI instructions) and successMetrics when present — do not assume product feature adoption is the success measure unless the framework says so. Answer in plain text, concise.`,
       `ACCOUNT DATA (JSON):
 ${JSON.stringify(ctx, null, 2)}
 
@@ -305,7 +305,11 @@ export const accountHealthSummary = createServerFn({ method: "POST" })
     ).length;
     const lastEvent = ctx.timeline[0]?.event_date ?? ctx.meetings[0]?.meeting_date ?? null;
     const signals = {
-      adoptionTrend: ctx.adoption.purchasedFeatures.length ? ctx.adoption.trend : null,
+      adoptionTrend: ctx.adoption.purchasedFeatures.length
+        ? ctx.adoption.trend
+        : ctx.successMetrics?.some((m) => m.current != null)
+          ? "See success metrics"
+          : null,
       openPainPoints: ctx.painPoints.length ? openPain : null,
       overdueActions: ctx.actionItems.length ? overdue : null,
       renewalInDays: ctx.customer.renewal_date
@@ -323,7 +327,11 @@ export const accountHealthSummary = createServerFn({ method: "POST" })
       `Write a qualitative account health summary for ${ctx.customer.name} based ONLY on these signals. Do not invent details, do not give a numeric score.
 
 SIGNALS (null means no data):
-${JSON.stringify(signals, null, 2)}`,
+${JSON.stringify(signals, null, 2)}
+
+COMPANY SUCCESS FRAMEWORK:
+${JSON.stringify(ctx.companyFramework)}
+SUCCESS METRICS: ${JSON.stringify(ctx.successMetrics)}`,
     );
     return { summary: summary.trim(), signals };
   });
