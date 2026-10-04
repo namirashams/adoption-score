@@ -103,7 +103,10 @@ function CompanyWizard() {
   const current = STEPS[step];
 
   const runGenerate = async () => {
-    if (!name.trim()) return toast.error("Enter a company name first");
+    if (!name.trim()) {
+      toast.error("Enter a company name first");
+      return;
+    }
     setGenerating(true);
     try {
       const filled = Object.fromEntries(Object.entries(answers).filter(([, v]) => v.trim()));
@@ -132,7 +135,10 @@ function CompanyWizard() {
       .select("id")
       .single();
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["companies"] });
     setActiveCompanyId(data.id);
     toast.success("Company created");

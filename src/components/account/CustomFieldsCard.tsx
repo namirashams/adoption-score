@@ -29,7 +29,7 @@ export function CustomFieldsCard({
       const prev = (values && typeof values === "object" ? values : {}) as Record<string, unknown>;
       const { error } = await supabase
         .from("customers")
-        .update({ custom_fields: { ...prev, ...form } })
+        .update({ custom_fields: { ...prev, ...form } as never })
         .eq("id", customerId);
       if (error) throw new Error(error.message);
     },
