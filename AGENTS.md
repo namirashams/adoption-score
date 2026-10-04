@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Universal CSM workflows (contacts, meetings, signals, insight, analyst, etc.) stay shared; company-specific success intelligence lives in companies.framework_type + companies.config (parsed via src/lib/company-config.ts) — why: new companies need no custom code and WebEngage keeps the original adoption scoring.
