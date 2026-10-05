@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -216,9 +223,10 @@ function SetupPage() {
 
       {activeCompany && <FrameworkPanel key={activeCompany.id} company={activeCompany} />}
 
-      {frameworkOf(activeCompany) === "product_adoption" && (
-        <FeatureTable companyId={activeCompanyId} />
-      )}
+      <FeatureTable
+        companyId={activeCompanyId}
+        adoption={frameworkOf(activeCompany) === "product_adoption"}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
@@ -297,9 +305,13 @@ type Draft = {
   is_core: boolean;
   module: string;
   expected_monthly_usage: number;
+  category: string;
+  is_expansion: boolean;
 };
 
-function FeatureTable({ companyId }: { companyId: string | null }) {
+const CATEGORIES = ["Core", "Advanced", "Add-on"];
+
+function FeatureTable({ companyId, adoption }: { companyId: string | null; adoption: boolean }) {
   const qc = useQueryClient();
   const { data } = useQuery({ ...featuresQuery(companyId ?? ""), enabled: !!companyId });
   const features = data ?? EMPTY_FEATURES;
@@ -314,6 +326,8 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
         is_core: f.is_core,
         module: f.module,
         expected_monthly_usage: Number(f.expected_monthly_usage),
+        category: f.category ?? "Core",
+        is_expansion: !!f.is_expansion,
       })),
     );
   }, [features]);
@@ -347,6 +361,8 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
           is_core: row.is_core,
           module: row.module || "General",
           expected_monthly_usage: Number(row.expected_monthly_usage) || 1,
+          category: row.category,
+          is_expansion: row.is_expansion,
         })
         .eq("id", row.id);
       if (error) throw new Error(error.message);
@@ -390,6 +406,8 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
             module: cells[2] || "General",
             is_core: ["yes", "y", "true", "1", "core"].includes(core),
             expected_monthly_usage: Number(cells[4]) || 4,
+            category: CATEGORIES.find((c) => c.toLowerCase() === (cells[5] ?? "").toLowerCase()) ?? "Core",
+            is_expansion: ["yes", "y", "true", "1"].includes((cells[6] ?? "").toLowerCase()),
           };
         })
         .filter((r) => r.name.length > 0);
@@ -437,7 +455,7 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
             <DialogTitle>Bulk import features</DialogTitle>
             <DialogDescription>
               Paste one feature per line, comma or tab separated:{" "}
-              <code>name, description, module, core (yes/no), expected_monthly_usage</code>. Empty
+              <code>name, description, module, core (yes/no), expected_monthly_usage, category (Core/Advanced/Add-on), expansion (yes/no)</code>. Empty
               lines are skipped.
             </DialogDescription>
           </DialogHeader>
@@ -464,14 +482,16 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Description</th>
-                <th className="px-4 py-3 font-medium">Module</th>
-                <th className="px-4 py-3 font-medium">
+                <th className="px-4 py-3 font-medium">Category</th>
+                <th className="px-4 py-3 font-medium">Expansion</th>
+                {adoption && <th className="px-4 py-3 font-medium">Module</th>}
+                {adoption && <th className="px-4 py-3 font-medium">
                   Core by default
                   <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
                     Starting point when added to a customer; can be overridden per customer.
                   </span>
-                </th>
-                <th className="px-4 py-3 font-medium">Expected / mo</th>
+                </th>}
+                {adoption && <th className="px-4 py-3 font-medium">Expected / mo</th>}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -488,19 +508,40 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
                     />
                   </td>
                   <td className="px-4 py-2">
+                    <Select value={f.category} onValueChange={(v) => update(f.id, { category: v })}>
+                      <SelectTrigger className="w-32" aria-label="Category">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="px-4 py-2">
+                    <Checkbox
+                      aria-label="Expansion opportunity"
+                      checked={f.is_expansion}
+                      onCheckedChange={(c) => update(f.id, { is_expansion: c === true })}
+                    />
+                  </td>
+                  {adoption && <td className="px-4 py-2">
                     <Input
                       className="w-36"
                       value={f.module}
                       onChange={(e) => update(f.id, { module: e.target.value })}
                     />
-                  </td>
-                  <td className="px-4 py-2">
+                  </td>}
+                  {adoption && <td className="px-4 py-2">
                     <Checkbox
                       checked={f.is_core}
                       onCheckedChange={(c) => update(f.id, { is_core: c === true })}
                     />
-                  </td>
-                  <td className="px-4 py-2">
+                  </td>}
+                  {adoption && <td className="px-4 py-2">
                     <Input
                       type="number"
                       min={1}
@@ -510,7 +551,7 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
                         update(f.id, { expected_monthly_usage: Number(e.target.value) })
                       }
                     />
-                  </td>
+                  </td>}
                   <td className="px-4 py-2">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="secondary" onClick={() => saveRow.mutate(f)}>
@@ -525,7 +566,7 @@ function FeatureTable({ companyId }: { companyId: string | null }) {
               ))}
               {drafts.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={adoption ? 8 : 4} className="px-4 py-8 text-center text-muted-foreground">
                     No features yet. Add the first one.
                   </td>
                 </tr>

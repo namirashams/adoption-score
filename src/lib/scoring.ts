@@ -6,6 +6,8 @@ export type Feature = {
   is_core: boolean;
   module: string;
   expected_monthly_usage: number;
+  category?: string;
+  is_expansion?: boolean;
 };
 
 export type UsageRow = {

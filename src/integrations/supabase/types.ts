@@ -392,32 +392,38 @@ export type Database = {
       }
       features: {
         Row: {
+          category: string
           company_id: string
           created_at: string
           description: string
           expected_monthly_usage: number
           id: string
           is_core: boolean
+          is_expansion: boolean
           module: string
           name: string
         }
         Insert: {
+          category?: string
           company_id: string
           created_at?: string
           description?: string
           expected_monthly_usage?: number
           id?: string
           is_core?: boolean
+          is_expansion?: boolean
           module?: string
           name: string
         }
         Update: {
+          category?: string
           company_id?: string
           created_at?: string
           description?: string
           expected_monthly_usage?: number
           id?: string
           is_core?: boolean
+          is_expansion?: boolean
           module?: string
           name?: string
         }
