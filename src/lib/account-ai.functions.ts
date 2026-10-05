@@ -128,6 +128,14 @@ async function loadAccountContext(customerId: string) {
     currentMonthUsage: Number(usageById.get(l.feature_id)?.current_month ?? 0),
     prevMonthUsage: Number(usageById.get(l.feature_id)?.prev_month ?? 0),
   }));
+  const enabledIds = new Set((links.data ?? []).map((l) => l.feature_id));
+  const featureCatalog = (features.data ?? []).map((f) => ({
+    name: f.name,
+    description: f.description,
+    category: f.category,
+    expansionOpportunity: f.is_expansion,
+    enabledForCustomer: enabledIds.has(f.id),
+  }));
   const currentSum = purchased.reduce((a, p) => a + p.currentMonthUsage, 0);
   const prevSum = purchased.reduce((a, p) => a + p.prevMonthUsage, 0);
   const trend =
@@ -144,6 +152,7 @@ async function loadAccountContext(customerId: string) {
   return {
     companyFramework,
     successMetrics,
+    featureCatalog,
     customer: {
       customFields: customer.custom_fields,
       name: customer.name,
@@ -354,6 +363,7 @@ export const interpretSignal = createServerFn({ method: "POST" })
     const scoped = {
       companyFramework: ctx.companyFramework,
       successMetrics: ctx.successMetrics,
+      featureCatalog: ctx.featureCatalog,
       customer: ctx.customer,
       objectives: ctx.objectives,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
@@ -444,6 +454,7 @@ export const generateTodaysInsight = createServerFn({ method: "POST" })
     const scoped = {
       companyFramework: ctx.companyFramework,
       successMetrics: ctx.successMetrics,
+      featureCatalog: ctx.featureCatalog,
       customer: ctx.customer,
       adoption: ctx.adoption,
       openPainPoints: ctx.painPoints.filter((p) => p.status !== "Resolved"),
