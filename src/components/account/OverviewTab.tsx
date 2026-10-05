@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tag } from "./badges";
+import { Switch } from "@/components/ui/switch";
+import type { Feature } from "@/lib/scoring";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
 
@@ -103,9 +105,26 @@ export function OverviewTab({ customerId }: { customerId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const purchasedNames = features
-    .filter((f) => links.some((l) => l.feature_id === f.id))
-    .map((f) => f.name);
+  const enabledIds = new Set(links.map((l) => l.feature_id));
+  const expansionIdeas = features.filter((f) => f.is_expansion && !enabledIds.has(f.id));
+  const toggle = useMutation({
+    mutationFn: async ({ feature, enable }: { feature: Feature; enable: boolean }) => {
+      const res = enable
+        ? await supabase.from("customer_features").insert({
+            customer_id: customerId,
+            feature_id: feature.id,
+            is_core_for_customer: feature.is_core,
+          })
+        : await supabase
+            .from("customer_features")
+            .delete()
+            .eq("customer_id", customerId)
+            .eq("feature_id", feature.id);
+      if (res.error) throw new Error(res.error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customer_features"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
   const openPains = pains.filter((p) => p.status !== "Resolved").length;
   const overdue = actions.filter((a) => effectiveStatus(a) === "Overdue").length;
   const lastEvent = timeline[0]?.event_date ?? null;
@@ -211,17 +230,51 @@ export function OverviewTab({ customerId }: { customerId: string }) {
         </div>
 
         <div className="mt-6 border-t border-border pt-4">
-          <p className="text-sm font-medium">Products purchased</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {purchasedNames.map((n) => (
-              <Tag key={n} tone="primary">
-                {n}
-              </Tag>
-            ))}
-            {purchasedNames.length === 0 && (
-              <p className="text-sm text-muted-foreground">No features recorded yet.</p>
+          <p className="text-sm font-medium">Feature catalog</p>
+          <p className="text-xs text-muted-foreground">Toggle which features this customer has enabled.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {features.map((f) => {
+              const on = enabledIds.has(f.id);
+              return (
+                <label
+                  key={f.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm">{f.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {f.category ?? "Core"}
+                      {f.is_expansion ? " · Expansion" : ""}
+                    </span>
+                  </span>
+                  <Switch
+                    checked={on}
+                    disabled={toggle.isPending}
+                    onCheckedChange={(v) => toggle.mutate({ feature: f, enable: v })}
+                    aria-label={`${f.name} enabled`}
+                  />
+                </label>
+              );
+            })}
+            {features.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No catalog features yet. Add them in Product Setup.
+              </p>
             )}
           </div>
+          {expansionIdeas.length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-medium">Expansion ideas</p>
+              <ul className="mt-2 space-y-1.5">
+                {expansionIdeas.map((f) => (
+                  <li key={f.id} className="flex flex-wrap items-baseline gap-2 text-sm">
+                    <Tag tone="primary">{f.name}</Tag>
+                    <span className="text-muted-foreground">{f.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 
