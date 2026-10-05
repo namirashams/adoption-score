@@ -43,6 +43,13 @@
       "when": 1790940549145,
       "tag": "0005_company_frameworks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791179620947,
+      "tag": "0006_feature_catalog_category_expansion",
+      "breakpoints": true
     }
   ]
 }
